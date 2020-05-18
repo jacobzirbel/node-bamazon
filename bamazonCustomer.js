@@ -1,7 +1,6 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 const connectionInfo = require("./connection-info");
-const Question = require("./question");
 let connection = mysql.createConnection(connectionInfo);
 
 main();
@@ -43,10 +42,10 @@ async function startTransaction() {
 	let { price, stock_quantity } = await getItem(item_id);
 
 	if (response.quantity > stock_quantity) {
-		console.log("Insufficient Quantity!");
+		console.log(highlight("Insufficient Quantity!"));
 		return againPrompt();
 	} else {
-		console.log(`Your total is ${price * quantity}`);
+		console.log(highlight(`Your total is ${price * quantity}`));
 	}
 
 	let confirm = await inquirer.prompt([
@@ -56,7 +55,7 @@ async function startTransaction() {
 	if (confirm.ok) {
 		completePurchase(item_id, quantity);
 	} else {
-		console.log("Transaction Cancelled");
+		console.log(highlight("Transaction Cancelled"));
 	}
 	return againPrompt();
 }
@@ -100,4 +99,7 @@ function sqlQuery(query, vars = {}) {
 			resolve(res);
 		});
 	});
+}
+function highlight(words) {
+	return `\n**************\n${words}\n**************\n`;
 }
