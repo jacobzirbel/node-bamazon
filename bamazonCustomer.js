@@ -18,50 +18,86 @@ function main() {
 	}
 }
 
-function getProducts() {
-	let query = "SELECT * FROM `products`";
-	return sqlQuery(query);
-}
-
-async function getQuantity(id) {
-	let query = `SELECT stock_quantity FROM products WHERE ?`;
-	let result = await sqlQuery(query, { item_id: id });
-	return result[0].stock_quantity;
-}
-
-function sqlQuery(query, vars = {}) {
-	return new Promise((resolve, reject) => {
-		connection.query(query, vars, (err, res) => {
-			if (err) throw err;
-			resolve(res);
-		});
-	});
-}
-
 async function startTransaction() {
+	let products = await getProducts();
+	console.table(products);
+
 	let response = await inquirer.prompt([
 		{
-			type: "confirm",
-			name: "buy",
-			message: "would you like to buy something?",
+			type: "list",
+			name: "item_id",
+			message: "What would you like to buy?",
+			choices: products.map((e) => ({
+				name: e.product_name,
+				value: e.item_id,
+			})),
+		},
+		{
+			type: "number",
+			name: "quantity",
+			message: "How many would you like?",
 		},
 	]);
-	if (response.buy) {
-		let products = await getProducts();
-		let response = await inquirer.prompt([
-			{
-				type: "list",
-				name: "item",
-				message: "What would you like to buy?",
-				choices: products.map((e) => ({
-					name: e.product_name,
-					value: e.item_id,
-				})),
-			},
-		]);
-		console.log(await getQuantity(response.item));
+
+	let { item_id, quantity } = response;
+	let { price, stock_quantity } = await getItem(item_id);
+
+	if (response.quantity > stock_quantity) {
+		console.log("Insufficient Quantity!");
+		return againPrompt();
+	} else {
+		console.log(`Your total is ${price * quantity}`);
+	}
+
+	let confirm = await inquirer.prompt([
+		{ type: "confirm", message: "Complete purchase?", name: "ok" },
+	]);
+
+	if (confirm.ok) {
+		completePurchase(item_id, quantity);
+	} else {
+		console.log("Transaction Cancelled");
+	}
+	return againPrompt();
+}
+
+async function againPrompt() {
+	let again = await inquirer.prompt({
+		type: "confirm",
+		message: "Make another purchase?",
+		name: "ok",
+	});
+
+	if (again.ok) {
 		startTransaction();
 	} else {
 		connection.end();
 	}
+}
+
+function getProducts() {
+	let query =
+		"SELECT product_name name, department_name department, price, stock_quantity quantity FROM `products`";
+	return sqlQuery(query);
+}
+
+async function getItem(id) {
+	let query = `SELECT stock_quantity, price FROM products WHERE ?`;
+	let result = await sqlQuery(query, { item_id: id });
+
+	return { price: result[0].price, stock_quantity: result[0].stock_quantity };
+}
+
+function completePurchase(id, quantity) {
+	let query = `UPDATE products SET stock_quantity = stock_quantity - ${quantity}, sold_quantity = sold_quantity + ${quantity} WHERE ? `;
+	sqlQuery(query, { item_id: id });
+}
+function sqlQuery(query, vars = {}) {
+	return new Promise((resolve, reject) => {
+		connection.query(query, vars, (err, res) => {
+			if (err) throw err;
+			if (res.length === 0) reject("No Results");
+			resolve(res);
+		});
+	});
 }
