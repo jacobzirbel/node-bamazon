@@ -9,7 +9,7 @@ function main() {
 	try {
 		connection.connect(function (err) {
 			if (err) throw err;
-			console.log("connected as id " + connection.threadId);
+			// console.log("connected as id " + connection.threadId);
 			startManager();
 		});
 	} catch (err) {
@@ -41,14 +41,19 @@ function startManager() {
 function viewProducts() {
 	sqlQuery(`SELECT * FROM products`)
 		.then((products) => {
-			console.table(products);
+			let productsWithoutId = products.map(
+				({ item_id, ...product }) => product
+			);
+			console.table(productsWithoutId);
 		})
 		.catch((err) => console.log(err))
 		.finally(startManager);
 }
 
 function viewLowInventory() {
-	sqlQuery(`SELECT * FROM products WHERE stock_quantity < 0`)
+	sqlQuery(
+		`SELECT product_name, department_name, stock_quantity FROM products WHERE stock_quantity < 5`
+	)
 		.then((products) => {
 			if (products) {
 				console.table(products);
