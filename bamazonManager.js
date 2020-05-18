@@ -97,7 +97,6 @@ function addToInventory() {
 
 async function addNewProduct() {
 	let departments = await getDepartments();
-	departments.push("-- new --");
 	inquirer
 		.prompt([
 			{ name: "name", message: "Product Name?" },
@@ -107,11 +106,6 @@ async function addNewProduct() {
 				type: "list",
 				choices: departments,
 			},
-			{
-				name: "newDepartment",
-				message: "Name of new Department?",
-				when: (answers) => answers.department === "-- new --",
-			},
 			{ name: "price", message: "Price?", type: "number" },
 			{ name: "quantity", message: "Initial Quantity?", type: "number" },
 		])
@@ -119,8 +113,7 @@ async function addNewProduct() {
 		.catch(startManager);
 }
 function addRowToTable(response) {
-	let { name, department, newDepartment, price, quantity } = response;
-	if (newDepartment) department = newDepartment;
+	let { name, department, price, quantity } = response;
 
 	if (!numberValidator(price) || !numberValidator(quantity))
 		return startManager();
@@ -129,9 +122,7 @@ function addRowToTable(response) {
 	sqlQuery(query).finally(startManager);
 }
 async function getDepartments() {
-	let departments = await sqlQuery(
-		`SELECT DISTINCT department_name FROM products`
-	);
+	let departments = await sqlQuery(`SELECT department_name FROM departments`);
 	return departments.map((e) => e.department_name);
 }
 function sqlQuery(query, vars = {}) {
