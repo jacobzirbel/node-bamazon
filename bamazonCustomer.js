@@ -19,7 +19,8 @@ function main() {
 
 async function startTransaction() {
 	let products = await getProducts();
-	console.table(products);
+	let productsWithoutId = products.map(({ item_id, ...product }) => product);
+	console.table(productsWithoutId);
 
 	let response = await inquirer.prompt([
 		{
@@ -27,7 +28,7 @@ async function startTransaction() {
 			name: "item_id",
 			message: "What would you like to buy?",
 			choices: products.map((e) => ({
-				name: e.product_name,
+				name: e.name,
 				value: e.item_id,
 			})),
 		},
@@ -37,7 +38,6 @@ async function startTransaction() {
 			message: "How many would you like?",
 		},
 	]);
-
 	let { item_id, quantity } = response;
 	let { price, stock_quantity } = await getItem(item_id);
 
@@ -76,7 +76,7 @@ async function againPrompt() {
 
 function getProducts() {
 	let query =
-		"SELECT product_name name, department_name department, price, stock_quantity quantity FROM `products`";
+		"SELECT item_id, product_name name, department_name department, price, stock_quantity quantity FROM `products`";
 	return sqlQuery(query);
 }
 
